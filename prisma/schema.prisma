@@ -1,0 +1,36 @@
+// Käyttäjäprofiili (intekroitu Clerk/NextAuthin kanssa)
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  createdAt     DateTime @default(now())
+  documents     Document[]
+  usageQuota    Int      @default(0) // Seurataan AI-kutsuja (Free tier -rajoitus)
+}
+
+// Dokumentin perustiedot
+model Document {
+  id           String   @id @default(cuid())
+  title        String
+  url          String   // Linkki esim. S3- tai Supabase Storageon
+  status       Status   @default(PROCESSING)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  chunks       DocumentChunk[] // Pilkottu teksti vektoreina
+  createdAt    DateTime @default(now())
+}
+
+// Tekstipalat ja niiden vektorit (RAG-hakua varten)
+model DocumentChunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content     String   // Alkuperäinen tekstinpätkä
+  embedding   Unsupported("vector(768)")? // Vektori Gemini-mallille
+}
+
+enum Status {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
